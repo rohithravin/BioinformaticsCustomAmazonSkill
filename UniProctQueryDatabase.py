@@ -1,52 +1,43 @@
 import requests
 import json
-import pandas as pd
-import numpy as np
+import simplejson
+import sys
 
 BASE_API_URL = 'http://www.ebi.ac.uk/proteins/api/'
 
-def proteinSearch():
+def proteinSearch(keyword, size):
 
-    parameters = {'offset': 0, 'size': 1, 'keywords' : 'cancer'}
+    parameters = {'offset': 0, 'size': size, 'keywords' : keyword}
     header = {'Accept': 'application/json'}
 
     response = requests.get(BASE_API_URL + 'proteins', params = parameters, headers = header)
 
-    #get response code from the request
-    print('RESPONSE CODE: ' + str(response.status_code))
+    if response.status_code != 200:
+        return None
 
-    #json_response = response.json()
-
-    print(response.json())
-
-
-proteinSearch()
-
-
-#EXAMPLE OF HOW TO USE REST API WITH OpenNotify API'S
-def dummy_test_api():
-    #dummy base url
-    base_api_url = 'http://api.open-notify.org/'
-
-    #how to set up the parameters for the api request
-    parameters = {"lat": 37.78, "lon": -122.41}
-
-    #how to call the REST API
-    response = requests.get(base_api_url + 'iss-pass.json', params = parameters)
-
-    #get response code from the request
-    print('RESPONSE CODE: ' + str(response.status_code))
-
-    # Headers is a dictionary
-    print('RESPONSE HEADERS: ' + str(response.headers))
-
-    # Get the content-type from the dictionary.
-    print('CONTENT-TYPE: ' + str(response.headers["content-type"]))
-
-    #convert response to json NOTE THE STATUS CODE DISSAPEARS IN THIS CONVERSION
     json_response = response.json()
+    print(json_response)
 
-    #print the response
-    print(json_response['response'])
+    data = {}
+    data['proteins'] = []
+    for y in range(len(json_response)):
+        protein = {}
+        protein['id'] = json_response[y]['accession']
+        protein['protein_name'] = json_response[y]['protein']['recommendedName']['fullName']['value']
+        protein['gene'] = json_response[y]['id']
+        protein['function'] = json_response[y]['comments'][0]['text'][0]['value']
+        go = []
+        for x in range(len(json_response[y]['dbReferences'])):
+            if (json_response[y]['dbReferences'][x]['type'] == 'GO'):
+                go.append(json_response[y]['dbReferences'][x]['properties']['term'][2:].title())
+        protein['gene_ontology'] = go
+        data['proteins'].append(protein)
+    with open('proteins.json', 'w') as outfile:
+        json.dump(data, outfile)
 
-#dummy_test_api()
+
+
+args = []
+for x in sys.argv:
+     args.append(x)
+proteinSearch(args[1], args[2])

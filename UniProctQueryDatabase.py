@@ -35,9 +35,15 @@ def proteinSearch(keyword, size):
     with open('proteins.json', 'w') as outfile:
         json.dump(data, outfile)
 
-
-
+"""
 args = []
 for x in sys.argv:
      args.append(x)
 proteinSearch(args[1], args[2])
+"""
+
+def test():
+    print('hi')
+    response = requests.get('https://www.uniprot.org/uniprot/?query=insulin')
+    print(response)
+test()

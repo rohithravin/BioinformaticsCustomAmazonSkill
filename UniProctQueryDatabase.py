@@ -47,6 +47,7 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
             url+=  str(query[q])
         else:
             url+= '+' + str(query[q])
+    """
     if entry_id is not None:
         for x in range(len(entry_id)):
             if x == 0:
@@ -77,6 +78,7 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
                 url += '+keyword:' + str(keywords[x])
             else:
                 url += '+OR+keyword:' + str(keywords[x])
+    """
     url+= '+reviewed:yes&sort=score'
     html = urllib.request.urlopen(url).read()
     soup = BeautifulSoup( html ,'html.parser')
@@ -105,8 +107,9 @@ def get_proteins (num, query, entry_id = None, organism = None, protein_name = N
     protein_list  = get_protein_ids(query, entry_id, organism, protein_name, go_terms, keywords)
     if len(protein_list) > num:
         protein_list = protein_list[:num]
+    print(protein_list)
     return proteinSearch(protein_list)
-
+print(get_proteins (10,'human'))
 #EXPAMPLES
 #print(get_proteins (10, 'insulin', organism = ['human']))
 #print(get_proteins (10, 'lung cancer', organism = ['mouse']))

@@ -89,7 +89,7 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
     return protein_ids
 
 
-def get_proteins (num, query, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None):
+def get_proteins (query,num=5, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None):
     if not isinstance(num, int):
         return -1
     if not isinstance(query, str):
@@ -109,7 +109,9 @@ def get_proteins (num, query, entry_id = None, organism = None, protein_name = N
         protein_list = protein_list[:num]
     print(protein_list)
     return proteinSearch(protein_list)
-print(get_proteins (10,'human'))
+
+    
+print(get_proteins ('human'))
 #EXPAMPLES
 #print(get_proteins (10, 'insulin', organism = ['human']))
 #print(get_proteins (10, 'lung cancer', organism = ['mouse']))

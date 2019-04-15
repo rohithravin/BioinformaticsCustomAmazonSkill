@@ -1,11 +1,37 @@
 import requests
 import json
-import simplejson
-import sys
 import urllib
-from bs4 import BeautifulSoup
+from html.parser import HTMLParser
 
 BASE_API_URL = 'http://www.ebi.ac.uk/proteins/api/'
+
+class LinksParser(HTMLParser):
+
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.recording = 0
+        self.data = []
+
+    def handle_starttag(self, tag, attributes):
+        if tag != 'td':
+            return
+        if self.recording:
+            self.recording += 1
+            return
+        for name, value in attributes:
+            if name == 'class' and value == 'entryID':
+                break
+        else:
+            return
+        self.recording = 1
+
+    def handle_endtag(self, tag):
+        if tag == 'td' and self.recording:
+            self.recording -= 1
+
+    def handle_data(self, data):
+        if self.recording:
+            self.data.append(data)
 
 def proteinSearch(lis):
     data = {}
@@ -80,13 +106,16 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
                 url += '+OR+keyword:' + str(keywords[x])
     """
     url+= '+reviewed:yes&sort=score'
-    html = urllib.request.urlopen(url).read()
-    soup = BeautifulSoup( html ,'html.parser')
-    entries = soup('td', {'class' : 'entryID'})
-    protein_ids = []
-    for entry in entries:
-        protein_ids.append(entry.a.string)
-    return protein_ids
+
+
+    p = LinksParser()
+    f = urllib.request.urlopen(url)
+    mybytes = f.read()
+    mystr = mybytes.decode("utf8")
+    p.feed(mystr)
+    p.close()
+    return p.data
+
 
 
 def get_proteins (query,num=5, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None):
@@ -107,10 +136,9 @@ def get_proteins (query,num=5, entry_id = None, organism = None, protein_name = 
     protein_list  = get_protein_ids(query, entry_id, organism, protein_name, go_terms, keywords)
     if len(protein_list) > num:
         protein_list = protein_list[:num]
-    print(protein_list)
     return proteinSearch(protein_list)
 
-    
+
 print(get_proteins ('human'))
 #EXPAMPLES
 #print(get_proteins (10, 'insulin', organism = ['human']))

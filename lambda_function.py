@@ -2,14 +2,18 @@
 import urllib
 from botocore.vendored import requests
 import json
-import sys
+from html.parser import HTMLParser
+
 BASE_API_URL = 'http://www.ebi.ac.uk/proteins/api/'
 
 
 
 def lambda_handler(event, context):
     print(event['request'])
- 
+    if event['request']['type'] == "IntentRequest":
+        return intent_scheme(event)
+    if event['request']['type'] == "WebSearch":
+        return intent_scheme(event)
     if event['request']['type'] == "LaunchRequest":
         return on_launch(event)
     elif event['request']['type'] == "IntentRequest":
@@ -26,9 +30,10 @@ def on_end():
 def intent_scheme(event):
     
     intent_name = event['request']['intent']['name']
-
+    if intent_name == "filterSearch":
+        return getProteins(event)
     if intent_name == "WebSearch":
-        return proteinSearch(event)        
+        return getProteins(event)        
     elif intent_name in ["AMAZON.NoIntent", "AMAZON.StopIntent", "AMAZON.CancelIntent"]:
         return stop_the_skill(event)
     elif intent_name == "AMAZON.HelpIntent":
@@ -60,7 +65,7 @@ def fallback_call(event):
         
 def on_launch(event):
     print("launching")
-    msg = "Hi, welcome to the Uniprot Protein Search Alexa Skill?"
+    msg = "Hi, welcome to the Uniprot Protein Search Alexa Skill."
     reprompt_msg = "Do you want to hear more about a particular protein?"
     card_TEXT = "Protein Search"
     card_TITLE = "Choose a protein."
@@ -91,22 +96,41 @@ def response_field_builder_with_reprompt_and_card(outputSpeach_text, card_text, 
     return speech_dict
 
 def output_json_builder_with_reprompt_and_card(outputSpeach_text, card_text, card_title, reprompt_text, value):
-    print("building")
+    print("outputting ", outputSpeach_text)
     response_dict = {}
     response_dict['version'] = '1.0'
     response_dict['response'] = response_field_builder_with_reprompt_and_card(outputSpeach_text, card_text, card_title, reprompt_text, value)
     return response_dict
+    
+class LinksParser(HTMLParser):
 
-def proteinSearch(event):
-    print("searching")
-    lis = []
-    name=event['request']['intent']['slots']['search']['value']
-    print(name)
-    lis.append(name)
-    reprompt_MSG = "Do you want to hear more about a particular protein?"
-    card_TEXT = "You've picked cancer"
-    card_TITLE = "You've picked cancer"
-    return output_json_builder_with_reprompt_and_card("Searching cancer proteins...", card_TEXT, card_TITLE, reprompt_MSG, False)
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.recording = 0
+        self.data = []
+
+    def handle_starttag(self, tag, attributes):
+        if tag != 'td':
+            return
+        if self.recording:
+            self.recording += 1
+            return
+        for name, value in attributes:
+            if name == 'class' and value == 'entryID':
+                break
+        else:
+            return
+        self.recording = 1
+
+    def handle_endtag(self, tag):
+        if tag == 'td' and self.recording:
+            self.recording -= 1
+
+    def handle_data(self, data):
+        if self.recording:
+            self.data.append(data)
+
+def proteinSearch(lis):
     data = {}
     data['proteins'] = []
     for keyword  in lis:
@@ -114,6 +138,7 @@ def proteinSearch(event):
         header = {'Accept': 'application/json'}
         response = requests.get(BASE_API_URL + 'proteins', params = parameters, headers = header)
         if response.status_code != 200:
+            print("NONE PROteINS")
             return None
         json_response = response.json()
         for y in range(len(json_response)):
@@ -132,15 +157,14 @@ def proteinSearch(event):
             protein['pdb_entries'] = pdb_entry
             protein['gene_ontology'] = go
             data['proteins'].append(protein)
-    print(data)
-    with open('proteins.json', 'w') as outfile:
-        json.dump(data, outfile)
-    print(data)
-    
-"""
+    #with open('proteins.json', 'w') as outfile:
+    #    json.dump(data, outfile)
+    return data
+
 #keyword, protein name, location, discription, organism, proteinID
 #pdb entry id, need to parse xml as well
 def get_protein_ids(query, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None ):
+    
     url  = 'https://www.uniprot.org/uniprot/?query='
     query = query.split()
     for q in range(len(query)):
@@ -148,19 +172,54 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
             url+=  str(query[q])
         else:
             url+= '+' + str(query[q])
-   
+    """
+    if entry_id is not None:
+        for x in range(len(entry_id)):
+            if x == 0:
+                url += '+mnemonic:' + str(entry_id[x])
+            else:
+                url += '+OR+mnemonic:' + str(entry_id[x])
+    if organism is not None:
+        for x in range(len(organism)):
+            if x == 0:
+                url += '+organism:' + str(organism[x])
+            else:
+                url += '+OR+organism:' + str(organism[x])
+    if protein_name is not None:
+        for x in range(len(protein_name)):
+            if x == 0:
+                url += '+name:' + str(protein_name[x])
+            else:
+                url += '+OR+name:' + str(protein_name[x])
+    if go_terms is not None:
+        for x in range(len(go_terms)):
+            if x == 0:
+                url += '+goa:' + str(go_terms[x])
+            else:
+                url += '+OR+goa:' + str(go_terms[x])
+    if keywords is not None:
+        for x in range(len(keywords)):
+            if x == 0:
+                url += '+keyword:' + str(keywords[x])
+            else:
+                url += '+OR+keyword:' + str(keywords[x])
+    """
     url+= '+reviewed:yes&sort=score'
-    html = urllib.request.urlopen(url).read()
-    soup = BeautifulSoup( html ,'html.parser')
-    entries = soup('td', {'class' : 'entryID'})
-    protein_ids = []
-    for entry in entries:
-        protein_ids.append(entry.a.string)
-    return protein_ids
 
 
-def get_proteins (query,num=5, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None):
-    if not isinstance(num, int):
+    p = LinksParser()
+    f = urllib.request.urlopen(url)
+    mybytes = f.read()
+    mystr = mybytes.decode("utf8")
+    p.feed(mystr)
+    p.close()
+    return p.data
+
+
+
+def getProteins (query,num=5, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None):
+    query = query['request']['intent']['slots']['search']['value']  
+    """if not isinstance(num, int):
         return -1
     if not isinstance(query, str):
         return -1
@@ -173,16 +232,17 @@ def get_proteins (query,num=5, entry_id = None, organism = None, protein_name = 
     if go_terms is not None and not  isinstance(go_terms, list):
         return -1
     if keywords is not None and not  isinstance(keywords, list):
-        return -1
+        return -1"""
     protein_list  = get_protein_ids(query, entry_id, organism, protein_name, go_terms, keywords)
+    print("getting proteins")
+    print(protein_list)
     if len(protein_list) > num:
         protein_list = protein_list[:num]
-    print(protein_list)
-    return proteinSearch(protein_list)
+    #proteins =  proteinSearch(protein_list)
+    msg = "YOOOOO"
+    reprompt_msg = "Do you want to hear more about a particular protein?"
+    card_TEXT = "Protein Search"
+    card_TITLE = "Results for " + query
+    print(msg)
+    return output_json_builder_with_reprompt_and_card(msg, card_TEXT, card_TITLE, reprompt_msg, False)
 
-    
-print(get_proteins ('human'))
-#EXPAMPLES
-#print(get_proteins (10, 'insulin', organism = ['human']))
-#print(get_proteins (10, 'lung cancer', organism = ['mouse']))
-"""

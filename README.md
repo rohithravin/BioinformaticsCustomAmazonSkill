@@ -20,14 +20,21 @@ Navigation:
 
 Editing:
 * Invocation: How to start the search
-  * "Start protein database" where protein database is the invocation you set
-      
+  * "Start protein database" where protein database is the invocation you set   
 * Intents: What the user says to cause an action
   * "look up brain" the lambda functions parses that the "webSearch" intent was used, with the search parameter "brain"
-      
- Click "Save Model" then "Build Model"
+* Click "Save Model" then "Build Model"
  
- Testing:
+Testing:
 * Next Click "Test" near the top of the webpage
 * You can test using the microphone (hold down the button, and verbal give your invocation and intents) or by typing them into the text box provided.
-* Here are some examples of tests you can do and what they will return. 
+* Here are some examples of tests you can do and what they will return:
+
+ * Type or say: "start protein database"
+  * Return: "Hi, welcome to the Uniprot Protein Search Alexa Skill."
+ * Type or say: "search brain"
+  * Return: "Tachykinins. Function: Tachykinins are active peptides which excite neurons, evoke behavioral responses, are potent vasodilators and secretagogues, and contract (directly or indirectly) many smooth muscles"
+ * Type or say: "search insulin"
+  * Return: "Insulin-like growth factor 1 receptor. Function: Receptor tyrosine kinase which mediates actions of insulin-like growth factor 1 (IGF1)"
+ * Type or say: "search insulin rats"
+  * Return: "Brain-specific angiogenesis inhibitor 1-associated protein 2. Function: Adapter protein that links membrane-bound small G-proteins to cytoplasmic effector proteins"

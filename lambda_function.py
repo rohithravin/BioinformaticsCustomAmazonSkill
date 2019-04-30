@@ -26,29 +26,29 @@ def on_start(event):
    print("Session Started.")
 def on_end():
     print("session end")
-    
+
 def intent_scheme(event):
-    
+
     intent_name = event['request']['intent']['name']
     if intent_name == "filterSearch":
         return getProteins(event)
     if intent_name == "WebSearch":
-        return getProteins(event)        
+        return getProteins(event)
     elif intent_name in ["AMAZON.NoIntent", "AMAZON.StopIntent", "AMAZON.CancelIntent"]:
         return stop_the_skill(event)
     elif intent_name == "AMAZON.HelpIntent":
         return assistance(event)
     elif intent_name == "AMAZON.FallbackIntent":
         return fallback_call(event)
-        
-        
+
+
 def stop_the_skill(event):
     stop_MSG = "Thank you. Bye!"
     reprompt_MSG = ""
     card_TEXT = "Bye."
     card_TITLE = "Bye Bye."
     return output_json_builder_with_reprompt_and_card(stop_MSG, card_TEXT, card_TITLE, reprompt_MSG, True)
-    
+
 def assistance(event):
     assistance_MSG = "You can ask me to search a protein. For example, search cancer."
     reprompt_MSG = "Do you want to hear more about a particular protein?"
@@ -62,7 +62,7 @@ def fallback_call(event):
     card_TEXT = "You've asked a wrong question."
     card_TITLE = "Wrong question."
     return output_json_builder_with_reprompt_and_card(fallback_MSG, card_TEXT, card_TITLE, reprompt_MSG, False)
-        
+
 def on_launch(event):
     print("launching")
     msg = "Hi, welcome to the Uniprot Protein Search Alexa Skill."
@@ -80,13 +80,13 @@ def reprompt_builder(repr_text):
     reprompt_dict = {}
     reprompt_dict['outputSpeech'] = plain_text_builder(repr_text)
     return reprompt_dict
-    
+
 def card_builder(c_text, c_title):
     card_dict = {}
     card_dict['type'] = "Simple"
     card_dict['title'] = c_title
     card_dict['content'] = c_text
-    return card_dict   
+    return card_dict
 def response_field_builder_with_reprompt_and_card(outputSpeach_text, card_text, card_title, reprompt_text, value):
     speech_dict = {}
     speech_dict['outputSpeech'] = plain_text_builder(outputSpeach_text)
@@ -101,7 +101,7 @@ def output_json_builder_with_reprompt_and_card(outputSpeach_text, card_text, car
     response_dict['version'] = '1.0'
     response_dict['response'] = response_field_builder_with_reprompt_and_card(outputSpeach_text, card_text, card_title, reprompt_text, value)
     return response_dict
-    
+
 class LinksParser(HTMLParser):
 
     def __init__(self):
@@ -157,14 +157,12 @@ def proteinSearch(lis):
             protein['pdb_entries'] = pdb_entry
             protein['gene_ontology'] = go
             data['proteins'].append(protein)
-    #with open('proteins.json', 'w') as outfile:
-    #    json.dump(data, outfile)
     return data
 
 #keyword, protein name, location, discription, organism, proteinID
 #pdb entry id, need to parse xml as well
 def get_protein_ids(query, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None ):
-    
+
     url  = 'https://www.uniprot.org/uniprot/?query='
     query = query.split()
     for q in range(len(query)):
@@ -172,41 +170,7 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
             url+=  str(query[q])
         else:
             url+= '+' + str(query[q])
-    """
-    if entry_id is not None:
-        for x in range(len(entry_id)):
-            if x == 0:
-                url += '+mnemonic:' + str(entry_id[x])
-            else:
-                url += '+OR+mnemonic:' + str(entry_id[x])
-    if organism is not None:
-        for x in range(len(organism)):
-            if x == 0:
-                url += '+organism:' + str(organism[x])
-            else:
-                url += '+OR+organism:' + str(organism[x])
-    if protein_name is not None:
-        for x in range(len(protein_name)):
-            if x == 0:
-                url += '+name:' + str(protein_name[x])
-            else:
-                url += '+OR+name:' + str(protein_name[x])
-    if go_terms is not None:
-        for x in range(len(go_terms)):
-            if x == 0:
-                url += '+goa:' + str(go_terms[x])
-            else:
-                url += '+OR+goa:' + str(go_terms[x])
-    if keywords is not None:
-        for x in range(len(keywords)):
-            if x == 0:
-                url += '+keyword:' + str(keywords[x])
-            else:
-                url += '+OR+keyword:' + str(keywords[x])
-    """
     url+= '+reviewed:yes&sort=score'
-
-
     p = LinksParser()
     f = urllib.request.urlopen(url)
     mybytes = f.read()
@@ -218,31 +182,19 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
 
 
 def getProteins (query,num=5, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None):
-    query = query['request']['intent']['slots']['search']['value']  
-    """if not isinstance(num, int):
-        return -1
-    if not isinstance(query, str):
-        return -1
-    if entry_id is not None and not  isinstance(entry_id, list):
-        return -1
-    if organism is not None and not  isinstance(organism, list):
-        return -1
-    if protein_name is not None and not  isinstance(protein_name, list):
-        return -1
-    if go_terms is not None and not  isinstance(go_terms, list):
-        return -1
-    if keywords is not None and not  isinstance(keywords, list):
-        return -1"""
+    #fquery = query['request']['intent']['slots']['search']['value']
     protein_list  = get_protein_ids(query, entry_id, organism, protein_name, go_terms, keywords)
     print("getting proteins")
     print(protein_list)
     if len(protein_list) > num:
         protein_list = protein_list[:num]
-    #proteins =  proteinSearch(protein_list)
+    proteins =  proteinSearch(protein_list)
+    print(proteins)
     msg = "YOOOOO"
     reprompt_msg = "Do you want to hear more about a particular protein?"
     card_TEXT = "Protein Search"
     card_TITLE = "Results for " + query
     print(msg)
-    return output_json_builder_with_reprompt_and_card(msg, card_TEXT, card_TITLE, reprompt_msg, False)
+    #return output_json_builder_with_reprompt_and_card(msg, card_TEXT, card_TITLE, reprompt_msg, False)
 
+getProteins('cancer')

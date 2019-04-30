@@ -38,3 +38,13 @@ Testing:
   * Return: "Insulin-like growth factor 1 receptor. Function: Receptor tyrosine kinase which mediates actions of insulin-like growth factor 1 (IGF1)"
  * Type or say: "search insulin rats"
   * Return: "Brain-specific angiogenesis inhibitor 1-associated protein 2. Function: Adapter protein that links membrane-bound small G-proteins to cytoplasmic effector proteins"
+  
+  
+   TODOs:
+  * Add more utterances --> custom to users
+  * Implement filtering
+   * Currently organism filtering is functional
+   * Add remaining filters
+   * Add multi-filter capabilities
+   * Change return to x top results
+   * Change Python library used to parse HTML to increase optimization

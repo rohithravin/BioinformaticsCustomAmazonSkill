@@ -116,6 +116,8 @@ def output_json_builder_with_reprompt_and_card(outputSpeach_text, card_text, car
     return response_dict
 ################################################ Actual code for db search starts here###################################
 #Class to parse HTML page. TODO: Replace with faster parsing library so that multiple results can be returned
+#This class is a subclass of the built in HTMLParser. We use this class to extract the protein id's from the html page we get
+#We faster method would be to use the bs4, but had problem since it was an external library and not built it
 class LinksParser(HTMLParser):
 
     def __init__(self):
@@ -143,26 +145,34 @@ class LinksParser(HTMLParser):
     def handle_data(self, data):
         if self.recording:
             self.data.append(data)
+
 #makes the API call and parses the output when given a list of terms to search for
+#given a list of the protein ids, will call an api call for each id and extract the required data and accumlate it into a json object an return it
+
 def proteinSearch(lis):
     data = {}
     data['proteins'] = []
     for keyword  in lis:
         parameters = {'offset': 0,'accession' : keyword}
         header = {'Accept': 'application/json'}
+        #api call
         response = requests.get(BASE_API_URL + 'proteins', params = parameters, headers = header)
+        #check if api call was successful
         if response.status_code != 200:
             print("NONE PROteINS")
             return None
         json_response = response.json()
+        #go through each lsit in resposne
         for y in range(len(json_response)):
             protein = {}
+            #get required information from the resposne
             protein['id'] = json_response[y]['accession']
             protein['protein_name'] = json_response[y]['protein']['recommendedName']['fullName']['value']
             protein['gene'] = json_response[y]['id']
             protein['function'] = json_response[y]['comments'][0]['text'][0]['value']
             go = []
             pdb_entry = []
+            #used to get the go terms
             for x in range(len(json_response[y]['dbReferences'])):
                 if json_response[y]['dbReferences'][x]['type'] == 'PDBsum':
                     pdb_entry.append([json_response[y]['dbReferences'][x]['id'], 'https://www.ebi.ac.uk/pdbe/entry/pdb/' + str(json_response[y]['dbReferences'][x]['id'])])
@@ -170,6 +180,7 @@ def proteinSearch(lis):
                     go.append(json_response[y]['dbReferences'][x]['properties']['term'][2:].title())
             protein['pdb_entries'] = pdb_entry
             protein['gene_ontology'] = go
+            #adding the protein to the json object
             data['proteins'].append(protein)
     return data
 
@@ -186,16 +197,21 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
         else:
             url+= '+' + str(query[q])
     url+= '+reviewed:yes&sort=score'
+    #create object of custom parser class
     p = LinksParser()
+    #api call righ there
     f = urllib.request.urlopen(url)
     mybytes = f.read()
     mystr = mybytes.decode("utf8")
+    #read in the data and get the ids
     p.feed(mystr)
     p.close()
     return p.data
 
 
 #This is the function called by the alexa intentt_scheme() that makes use of other functions to send a response back to the Alexa interface
+#main function to interact with, right now only takes in query, and no filters.
+#adding filters could be the next time to optimize this function
 def getProteins (query,num=5, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None):
     #fquery = query['request']['intent']['slots']['search']['value']
     protein_list  = get_protein_ids(query, entry_id, organism, protein_name, go_terms, keywords)

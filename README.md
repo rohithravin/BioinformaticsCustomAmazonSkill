@@ -4,7 +4,7 @@
 
 ### The goal of this project is help researchers in the Biology Department have a constructive discussion about specific proteins and their structures, while simultaneously having a computer or AI run database searches, predict protein structures using machine learning models, and visualize all the information for everyone to see. We hope to achieve this goal by creating a custom Amazon Alexa skill. This project will have three phases in order to complete this goal. The first phase will be to create our custom code that is able to communicate with the protein database, run queries, and predict protein structures. This codebase will be hosted on AWS. The second part of this phase is preparing the initial setup of our custom skill with Alexa. We will have to design a voice user interface, that allows the user to request the skill using a set of pre determined phrases. This will be accomplished through tweaking the parameters of Amazon’s NLP models. The second phase will be to integrate our custom codebase with our Amazon skill. After the integration is successful, testing of the entire project will be executed in order to make sure the requests Alexa reads can be deciphered with our codebase. This will require further tweaking of the NLP model and changing our custom codebase to understand the request Alexa sends over the sever. The last phase is to implement the visualization feature for this skill. When requested, Alexa should display the results on the Alexa app or on the projector using Amazon’s smart home features. At this point, we should have a working prototype of our custom skill that can be used in house for researchers and professors to use. Future modifications such as user experience and efficiency can be done after the basic features are established. 
 
-### USAGE : Must call the method get_proteins() and give the require parameters. only num and query are required for the query, everything else is optional. Also, everything must be sent as a list of strings except for num and query. I've written two short examples at the bottom of the script that is commented.
+### USAGE : Must call the method get_proteins() and give the require parameters if running as a standalone app. only num and query are required for the query, everything else is optional. Also, everything must be sent as a list of strings except for num and query. I've written two short examples at the bottom of the script that is commented. In the alexa skill the lambda is triggered (the code for which is also included in the git) and so in that case the lambda_handler calls different functions based on the received intent that will call get_proteins(). 
 
 
 
@@ -42,9 +42,11 @@ Testing:
   
    TODOs:
   * Add more utterances --> custom to users
-  * Implement filtering
-   * Currently organism filtering is functional
-   * Add remaining filters
-   * Add multi-filter capabilities
-   * Change return to x top results
-   * Change Python library used to parse HTML to increase optimization
+  * Implement filtering with different parameters
+      - Currently organism filtering is functional
+  * Add remaining filters
+  * Add multi-filter capabilities
+  * Change return to x top results
+  * Change Python library used to parse HTML to increase optimization and parse more results (currently parses 1 to 3 results depending on the size of the results)
+  
+ Later we will explore triggereing displays through another server to display protein structure, pymols etc.

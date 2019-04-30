@@ -6,7 +6,9 @@ from html.parser import HTMLParser
 
 BASE_API_URL = 'http://www.ebi.ac.uk/proteins/api/'
 
-
+"""
+The lambda_handler receives the request from the Alexa skill, identifies the type of intent and calls the appropriate function
+"""
 
 def lambda_handler(event, context):
     print(event['request'])
@@ -21,12 +23,17 @@ def lambda_handler(event, context):
     elif event['request']['type'] == "SessionEndedRequest":
         return on_end()
 
-
+#start function basically logs to console to check if the request was received and the connection was made
 def on_start(event):
    print("Session Started.")
+
+#end function basically logs to console to know when the session has ended
+
 def on_end():
     print("session end")
     
+#this function dispatches the intent with appropriate parameters depending on the type of intent
+
 def intent_scheme(event):
     
     intent_name = event['request']['intent']['name']
@@ -41,14 +48,15 @@ def intent_scheme(event):
     elif intent_name == "AMAZON.FallbackIntent":
         return fallback_call(event)
         
-        
+#This function sends a stop response to the alexa device when the user exits the skill
 def stop_the_skill(event):
     stop_MSG = "Thank you. Bye!"
     reprompt_MSG = ""
     card_TEXT = "Bye."
     card_TITLE = "Bye Bye."
     return output_json_builder_with_reprompt_and_card(stop_MSG, card_TEXT, card_TITLE, reprompt_MSG, True)
-    
+ 
+#This function tells the user how to use the skill if they are not sure. This is triggered when the user says "Alexa, help" in an ongoing session
 def assistance(event):
     assistance_MSG = "You can ask me to search a protein. For example, search cancer."
     reprompt_MSG = "Do you want to hear more about a particular protein?"
@@ -56,13 +64,15 @@ def assistance(event):
     card_TITLE = "Help"
     return output_json_builder_with_reprompt_and_card(assistance_MSG, card_TEXT, card_TITLE, reprompt_MSG, False)
 
+#If alexa does not undertsanf the request, this is what is triggered
 def fallback_call(event):
     fallback_MSG = "I can't help you with that, try rephrasing the question or ask for help by saying HELP."
     reprompt_MSG = "Do you want to hear more about a particular protein?"
     card_TEXT = "You've asked a wrong question."
     card_TITLE = "Wrong question."
     return output_json_builder_with_reprompt_and_card(fallback_MSG, card_TEXT, card_TITLE, reprompt_MSG, False)
-        
+
+#This is triggered when the skill launches. It tells the user about the skill        
 def on_launch(event):
     print("launching")
     msg = "Hi, welcome to the Uniprot Protein Search Alexa Skill."
@@ -70,23 +80,25 @@ def on_launch(event):
     card_TEXT = "Protein Search"
     card_TITLE = "Choose a protein."
     return output_json_builder_with_reprompt_and_card(msg, card_TEXT, card_TITLE, reprompt_msg, False)
+#Constructs the plaintext
 def plain_text_builder(text_body):
     text_dict = {}
     text_dict['type'] = 'PlainText'
     text_dict['text'] = text_body
     return text_dict
-
+#Builds reprompt message if the user does not say anything
 def reprompt_builder(repr_text):
     reprompt_dict = {}
     reprompt_dict['outputSpeech'] = plain_text_builder(repr_text)
     return reprompt_dict
-    
+ #Constructs the card to be sent to the device
 def card_builder(c_text, c_title):
     card_dict = {}
     card_dict['type'] = "Simple"
     card_dict['title'] = c_title
     card_dict['content'] = c_text
     return card_dict   
+#This function integrates other functions to create the card and response field for the output JSON
 def response_field_builder_with_reprompt_and_card(outputSpeach_text, card_text, card_title, reprompt_text, value):
     speech_dict = {}
     speech_dict['outputSpeech'] = plain_text_builder(outputSpeach_text)
@@ -95,13 +107,15 @@ def response_field_builder_with_reprompt_and_card(outputSpeach_text, card_text, 
     speech_dict['shouldEndSession'] = value
     return speech_dict
 
+#Integrates other response functions to generate speecha nd card outputs
 def output_json_builder_with_reprompt_and_card(outputSpeach_text, card_text, card_title, reprompt_text, value):
     print("outputting ", outputSpeach_text)
     response_dict = {}
     response_dict['version'] = '1.0'
     response_dict['response'] = response_field_builder_with_reprompt_and_card(outputSpeach_text, card_text, card_title, reprompt_text, value)
     return response_dict
-    
+################################################ Actual code for db search starts here###################################    
+#Class to parse HTML page. TODO: Replace with faster parsing library so that multiple results can be returned
 class LinksParser(HTMLParser):
 
     def __init__(self):
@@ -129,7 +143,7 @@ class LinksParser(HTMLParser):
     def handle_data(self, data):
         if self.recording:
             self.data.append(data)
-
+#makes the API call and parses the output when given a list of terms to search for
 def proteinSearch(lis):
     data = {}
     data['proteins'] = []
@@ -163,6 +177,7 @@ def proteinSearch(lis):
 
 #keyword, protein name, location, discription, organism, proteinID
 #pdb entry id, need to parse xml as well
+#Returns protein ids from uniprot needed to search them through API
 def get_protein_ids(query, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None ):
     
     url  = 'https://www.uniprot.org/uniprot/?query='
@@ -216,7 +231,7 @@ def get_protein_ids(query, entry_id = None, organism = None, protein_name = None
     return p.data
 
 
-
+#This is the function called by the alexa intentt_scheme() that makes use of other functions to send a response back to the Alexa interface
 def getProteins (query,num=5, entry_id = None, organism = None, protein_name = None, go_terms = None, keywords = None):
     query = query['request']['intent']['slots']['search']['value']  
     """if not isinstance(num, int):
